@@ -1,0 +1,11 @@
+VAR numero, metade, produto, resto;
+VAR saida;
+{saida: 1 = impar, 0 = par}
+BEGIN
+	saida := 1;
+	metade := numero / 2;
+	{Ex. 7 / 2 = 3}
+	produto := metade * 2;
+	resto := numero - produto;
+	IF resto = 0 THEN saida := 0;
+END.

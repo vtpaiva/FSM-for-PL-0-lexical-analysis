@@ -38,8 +38,8 @@ FILE *open_file(const char* filename, const char* mode) {
     return file;
 }
 
-// Função para fechar arquivo caso exista.
-void close_lexer(FILE *source) {
+// Função para fechar arquivo de entrada.
+void close_lexer() {
     if (source) 
         fclose(source);
 }

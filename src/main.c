@@ -20,7 +20,8 @@ int main(int argc, char **argv) {
 
     } while ( token.type != TOKEN_EOF );
 
-    close_lexer(output_file);
+    close_lexer();
+    fclose(output_file);
 
     return EXIT_SUCCESS;
 }
