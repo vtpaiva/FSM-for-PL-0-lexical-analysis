@@ -8,11 +8,11 @@ all: analisador
 analisador: main.o lexer.o
 	$(CC) $(CFLAGS) -o analisador main.o lexer.o
 
-main.o: main.c lexer.h
-	$(CC) $(CFLAGS) -c main.c
+main.o: src/main.c header/lexer.h
+	$(CC) $(CFLAGS) -c src/main.c
 
-lexer.o: lexer.c lexer.h
-	$(CC) $(CFLAGS) -c lexer.c
+lexer.o: src/lexer.c header/lexer.h
+	$(CC) $(CFLAGS) -c src/lexer.c
 
 clean:
 	rm -f *.o analisador saida.txt

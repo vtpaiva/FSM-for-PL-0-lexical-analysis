@@ -1,0 +1,9 @@
+CONST x >= 2;
+VAR a@xxx,b,c;
+b >= 1, b<> a, K@77 <> 011;
+BEGIN
+	{comentario}
+	a:=0411;
+	b:=0;
+	c:=@+40
+END.
