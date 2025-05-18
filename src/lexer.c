@@ -53,7 +53,7 @@ void read_char(void) {
 void read_token(token *token, const char* str) {
     int index = 0;
 
-    while ( !strchr(str, currentChar) ) {
+    while ( currentChar != EOF && !strchr(str, currentChar) ) {
         token -> lexeme[index++] = currentChar;
         read_char();
     }
@@ -92,6 +92,132 @@ int is_keyword_or_error(char* str) {
         return TOKEN_ERROR;
 
     return TOKEN_IDENTIFIER;
+}
+
+// Função para selecionar a resposta no arquivo final.
+token get_next_token(bool is_comment) {
+    token token = {.lexeme = "\0", .type = TOKEN_ERROR};
+
+    if( is_comment ) {
+        read_token(&token, "}");
+        token.type = TOKEN_NULL;
+
+        return token;
+    }
+
+    while ( isspace(currentChar) ) 
+        read_char();
+
+    if ( currentChar == EOF ) {
+        token.type = TOKEN_EOF;
+        return token;
+    }
+
+    // Identificação de identificadores.
+    if ( isalpha(currentChar) ) {
+        read_token(&token, divisor_chars);
+        token.type = is_keyword_or_error(token.lexeme);
+
+        return token;
+    }
+
+    // Identificação de números. (Não são permitidos números com 0s à esquerda)
+    if ( isdigit(currentChar) ) {
+        int index = 0;
+
+        if( currentChar == '0' ) {
+            index++;
+            token.lexeme[0] = currentChar;
+
+            read_char();
+
+            if( !strchr("<>+-*/=;:,(){} \n\r", currentChar) ) {
+                while ( !strchr("<>+-*/=;:,(){} \n\r", currentChar) ) {
+                    token.lexeme[index++] = currentChar;
+                    read_char();
+                }
+
+                token.lexeme[index] = '\0';
+                token.type = TOKEN_ERROR;
+
+                return token;
+            } else {
+                token.lexeme[index] = '\0';
+
+                token.type = TOKEN_NUMBER;
+                return token;
+            }
+        }
+
+        while ( currentChar != EOF && !strchr("<>+-*/=;:,(){} \n\r", currentChar) ) {
+            token.lexeme[index++] = currentChar;
+            read_char();
+        }
+
+        if ( currentChar == EOF && token.lexeme[index - 1] == '.') {
+            index--;
+            currentChar = '.';
+        }
+
+        token.lexeme[index] = '\0';
+        token.type = ( is_all_number(token.lexeme) ) ? TOKEN_NUMBER : TOKEN_ERROR;
+
+        return token;
+    }
+
+    // Identificação de símbolos compostos.
+    if ( strchr(":<>", currentChar) ) {
+        token.lexeme[0] = currentChar;
+        
+        read_char();
+
+        if ( !strchr("=>", currentChar) ) {
+            token.lexeme[1] = '\0';
+
+            token.type = TOKEN_OPERATOR;
+            return token;
+        }
+
+        token.lexeme[1] = currentChar;
+        token.lexeme[2] = '\0';
+
+        read_char();
+
+        token.type = TOKEN_OPERATOR;
+        return token;
+    }
+
+    // Identificação de operadores e símbolos.
+    if ( strchr("+-*/=;.()", currentChar) ) {
+        token.lexeme[0] = currentChar;
+        token.lexeme[1] = '\0'; 
+        token.type = strchr("=-*/=+", currentChar)
+                     ? TOKEN_OPERATOR
+                     : TOKEN_SYMBOL;
+
+        read_char();
+
+        return token;
+    }
+
+    // Vírgulas não são explícitas na saída.
+    if( strchr(",{}", currentChar) ) {
+        token.lexeme[0] = currentChar;
+        token.lexeme[1] = '\0'; 
+
+        token.type = TOKEN_NULL;
+
+        read_char();
+
+        return token;
+    }
+
+    token.lexeme[0] = currentChar;
+    token.lexeme[1] = '\0';
+    token.type = TOKEN_ERROR;
+
+    read_char();
+    return token;
 }
 
 // Função de conversão de token para saída no arquivo final.
@@ -134,10 +260,6 @@ char *token_type_to_string(token token) {
                 return "simbolo_parenteses_abre";
             else if (token.lexeme[0] == ')')
                 return "simbolo_parenteses_fecha";
-            else if (token.lexeme[0] == '{')
-                return "simbolo_comentario_abre";
-            else if (token.lexeme[0] == '}')
-                return "simbolo_comentario_fecha";
             else
                 return "<ERRO_LEXICO>";
         };
@@ -149,121 +271,4 @@ char *token_type_to_string(token token) {
         case TOKEN_EOF: return "EOF";
         default: return "<ERRO_LEXICO>";
     }
-}
-
-// Função para selecionar a resposta no arquivo final.
-token get_next_token(bool is_comment) {
-    token token = {.lexeme = "\0", .type = TOKEN_ERROR};
-
-    if( is_comment ) {
-        read_token(&token, "}");
-        token.type = TOKEN_COMMENT;
-
-        return token;
-    }
-
-    while ( isspace(currentChar) ) 
-        read_char();
-
-    if ( currentChar == EOF ) {
-        token.type = TOKEN_EOF;
-        return token;
-    }
-
-    // Identificação de identificadores.
-    if ( isalpha(currentChar) ) {
-        read_token(&token, divisor_chars);
-        token.type = is_keyword_or_error(token.lexeme);
-
-        return token;
-    }
-
-    // Identificação de números. (Não são permitidos números com 0s à esquerda)
-    if ( isdigit(currentChar) ) {
-        int index = 0;
-
-        if( currentChar == '0' ) {
-            index++;
-            token.lexeme[0] = currentChar;
-
-            read_char();
-
-            if( !strchr(divisor_chars, currentChar) ) {
-                while ( !strchr(divisor_chars, currentChar) ) {
-                    token.lexeme[index++] = currentChar;
-                    read_char();
-                }
-
-                token.lexeme[index] = '\0';
-                token.type = TOKEN_ERROR;
-
-                return token;
-            } else {
-                token.lexeme[index] = '\0';
-
-                token.type = TOKEN_NUMBER;
-                return token;
-            }
-        }
-
-        while ( !strchr(divisor_chars, currentChar) ) {
-            token.lexeme[index++] = currentChar;
-            read_char();
-        }
-
-        token.lexeme[index] = '\0';
-        token.type = (is_all_number(token.lexeme)) ? TOKEN_NUMBER : TOKEN_ERROR;
-
-        return token;
-    }
-
-    // Identificação de símbolos compostos.
-    if ( strchr(":<>=", currentChar) ) {
-        token.lexeme[0] = currentChar;
-        read_char();
-
-        if (strchr("=>", currentChar)) {
-            token.lexeme[1] = currentChar;
-            token.lexeme[2] = '\0';
-            read_char();
-        } 
-        
-        else
-            token.lexeme[1] = '\0';
-
-        token.type = TOKEN_OPERATOR;
-        return token;
-    }
-
-    // Identificação de operadores e símbolos.
-    if ( strchr("+-*/=;.(){}", currentChar) ) {
-        token.lexeme[0] = currentChar;
-        token.lexeme[1] = '\0'; 
-        token.type = strchr("=-*/=+", currentChar)
-                     ? TOKEN_OPERATOR
-                     : TOKEN_SYMBOL;
-
-        read_char();
-
-        return token;
-    }
-
-    // Vírgulas não são explícitas na saída.
-    if( currentChar == ',' ) {
-        token.lexeme[0] = currentChar;
-        token.lexeme[1] = '\0'; 
-
-        token.type = TOKEN_NULL;
-
-        read_char();
-
-        return token;
-    }
-
-    token.lexeme[0] = currentChar;
-    token.lexeme[1] = '\0';
-    token.type = TOKEN_ERROR;
-
-    read_char();
-    return token;
 }

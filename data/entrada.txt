@@ -1,6 +1,6 @@
-CONST x >= 2;
-VAR a@xxx,b,c;
-b >= 1, b<> a, K@77 <> 011;
+CONST x >= 2.4
+VAR a@!xxx,b,c;
+b => 0.1, b <> 2.77.1, K@77 <> 10.661;
 BEGIN
 	{comentario}
 	a:=0411;
