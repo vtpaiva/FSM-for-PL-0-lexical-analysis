@@ -15,4 +15,4 @@ lexer.o: src/lexer.c header/lexer.h
 	$(CC) $(CFLAGS) -c src/lexer.c
 
 clean:
-	rm -f *.o analisador saida.txt
+	rm -rf *.o analisador saida.txt
