@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
 
     token token = {.lexeme = "\0", .type = TOKEN_INITIAL};
 
-    // Itera sobre o arquivo de entrada, lendo cada char.
+    // Itera sobre o arquivo de entrada, lendo cada chr.
     do {
         token = get_next_token( token.lexeme[0] == '{' );
 
