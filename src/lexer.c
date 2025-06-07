@@ -81,6 +81,10 @@ bool is_all_number(char *str) {
     return true;
 }
 
+bool is_any_alpha(char *str) {
+    return strstr("abcdefghijklmnopqrstuvwxyz", str);
+}
+
 // Função de retorno do tipo de string.
 int is_keyword_or_error(char* str) {
     for ( int i = 0; i < keywordsCount; i++ ) {
@@ -88,15 +92,15 @@ int is_keyword_or_error(char* str) {
             return TOKEN_KEYWORD;
     }
 
-    if( !is_all_alnum(str) )
-        return TOKEN_ERROR;
+    if( !is_all_alnum(str) ) 
+        return TOKEN_ERROR_INVALID_STRING;
 
     return TOKEN_IDENTIFIER;
 }
 
 // Função para selecionar a resposta no arquivo final.
 token get_next_token(bool is_comment, unsigned *line) {
-    token token = {.lexeme[0] = currentChar, .type = TOKEN_ERROR, .line = *line};
+    token token = {.lexeme[0] = currentChar, .type = TOKEN_ERROR_INVALID_CHAR, .line = *line};
 
     if( currentChar == '\r' ) {
         token.type = TOKEN_NULL;
@@ -145,7 +149,7 @@ token get_next_token(bool is_comment, unsigned *line) {
                 }
 
                 token.lexeme[index] = '\0';
-                token.type = TOKEN_ERROR;
+                token.type = (strchr(token.lexeme, '.')) ? TOKEN_ERROR_FLOATING : TOKEN_ERROR_LEFT_ZERO;
 
                 return token;
             } else {
@@ -167,7 +171,14 @@ token get_next_token(bool is_comment, unsigned *line) {
         }
 
         token.lexeme[index] = '\0';
-        token.type = ( is_all_number(token.lexeme) ) ? TOKEN_NUMBER : TOKEN_ERROR;
+
+        if( is_all_number(token.lexeme) ) {
+            token.type = TOKEN_NUMBER;
+        } else if ( is_any_alpha(token.lexeme) || !strchr(token.lexeme, '.') ){
+            token.type = TOKEN_ERROR_INVALID_STRING;
+        } else {
+            token.type = TOKEN_ERROR_FLOATING;
+        }
 
         return token;
     }
@@ -221,7 +232,7 @@ token get_next_token(bool is_comment, unsigned *line) {
 
     token.lexeme[0] = currentChar;
     token.lexeme[1] = '\0';
-    token.type = TOKEN_ERROR;
+    token.type = TOKEN_ERROR_INVALID_CHAR;
 
     read_char();
     return token;
@@ -274,7 +285,11 @@ char *token_type_to_string(token token) {
         case TOKEN_NUMBER: return "numero";
         case TOKEN_KEYWORD: return strdup(token.lexeme);
         case TOKEN_COMMENT: return "conteudo_comentario";
-        case TOKEN_ERROR: return "<ERRO_LEXICO>";
+        case TOKEN_ERROR_INVALID_CHAR: return "<ERRO_LEXICO_CHAR>";
+        case TOKEN_ERROR_INVALID_STRING: return "<ERRO_LEXICO_STRING>";
+        case TOKEN_ERROR_INVALID_NUMBER: return "<ERRO_LEXICO_NUMERO>";
+        case TOKEN_ERROR_FLOATING: return "<ERRO_LEXICO_FLOAT>";
+        case TOKEN_ERROR_LEFT_ZERO: return "<ERRO_LEXICO_LEFT_ZERO>";
         case TOKEN_EOF: return "EOF";
         default: return "<ERRO_LEXICO>";
     }

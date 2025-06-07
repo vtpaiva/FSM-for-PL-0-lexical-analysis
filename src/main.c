@@ -5,6 +5,7 @@ int main(int argc, char **argv) {
     char *input_filename = ( argc < 2 ) ? "data/entrada.txt" : argv[1];
 
     FILE *f = call_lexic(input_filename), *output_file = fopen(OUTPUT_FILE, "w");
+    remove(MID_FILE);
 
     rewind(f);
 
@@ -12,12 +13,20 @@ int main(int argc, char **argv) {
     char token[256], definition[256];
 
     while ( fscanf(f, "%[^,], %[^,], %u\n", token, definition, &line ) == 3 ) {
-        if( !strcmp(definition, error_def) )
-            fprintf(output_file, "Erro léxico na linha %u:\n", line);
+        if( !strcmp(definition, error_def_char) )
+            fprintf(output_file, "Erro léxico na linha %u: caracter inválido (%s)\n", line, token);
+        else if( !strcmp(definition, error_def_string) )
+            fprintf(output_file, "Erro léxico na linha %u: palavra inválida (%s)\n", line, token);
+        else if( !strcmp(definition, error_def_number) )
+            fprintf(output_file, "Erro léxico na linha %u: número inválido (%s)\n", line, token);
+        else if( !strcmp(definition, error_def_lzero) )
+            fprintf(output_file, "Erro léxico na linha %u: zero à esquerda (%s)\n", line, token);
+        else if( !strcmp(definition, error_def_float) )
+            fprintf(output_file, "Erro léxico na linha %u: número flutuante (%s)\n", line, token);
     }
 
     fclose(f);
-    remove(MID_FILE);
+    // remove(MID_FILE);
         
     return EXIT_SUCCESS;
 }
