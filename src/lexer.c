@@ -95,8 +95,15 @@ int is_keyword_or_error(char* str) {
 }
 
 // Função para selecionar a resposta no arquivo final.
-token get_next_token(bool is_comment) {
-    token token = {.lexeme = "\0", .type = TOKEN_ERROR};
+token get_next_token(bool is_comment, unsigned *line) {
+    token token = {.lexeme[0] = currentChar, .type = TOKEN_ERROR, .line = *line};
+
+    if( currentChar == '\r' ) {
+        token.type = TOKEN_NULL;
+        (*line)++;
+        read_char();
+        return token;
+    }
 
     if( is_comment ) {
         read_token(&token, "}");
@@ -149,7 +156,7 @@ token get_next_token(bool is_comment) {
             }
         }
 
-        while ( currentChar != EOF && !strchr("<>+-*/=;:,(){} \n\r", currentChar) ) {
+        while ( currentChar != EOF && !strchr("<>+-*/=;:,(){} \r\n", currentChar) ) {
             token.lexeme[index++] = currentChar;
             read_char();
         }

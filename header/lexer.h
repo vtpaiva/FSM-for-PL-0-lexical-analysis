@@ -20,13 +20,14 @@ typedef enum {
 } token_type;
 
 typedef struct {
+    unsigned line;
     char lexeme[128];
     token_type type;
 } token;
 
 char *token_type_to_string(token token);
 void init_lexer(const char* filename);
-token get_next_token(bool is_comment);
+token get_next_token(bool is_comment, unsigned *line);
 FILE *open_file(const char* filename, const char* mode);
 void close_lexer();
 
