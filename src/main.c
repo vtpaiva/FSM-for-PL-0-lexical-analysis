@@ -4,7 +4,7 @@
 int main(int argc, char **argv) {
     char *input_filename = ( argc < 2 ) ? "data/entrada.txt" : argv[1];
 
-    FILE *f = call_lexic(input_filename);
+    FILE *f = call_lexic(input_filename), *output_file = fopen(OUTPUT_FILE, "w");
 
     rewind(f);
 
@@ -13,15 +13,18 @@ int main(int argc, char **argv) {
 
     while ( fscanf(f, "%[^,], %[^,], %u\n", token, definition, &line ) == 3 ) {
         if( !strcmp(definition, error_def) )
-            printf("Erro léxico na linha %u:\n", line);
+            fprintf(output_file, "Erro léxico na linha %u:\n", line);
     }
+
+    fclose(f);
+    remove(MID_FILE);
         
     return EXIT_SUCCESS;
 }
 
 FILE *call_lexic(char *input_filename) {
     init_lexer(input_filename);
-    FILE *mid_file = open_file(mid_filename, "w+");
+    FILE *mid_file = open_file(MID_FILE, "w+");
 
     unsigned line = 1;
     token token = {.lexeme = "\0", .type = TOKEN_INITIAL};
