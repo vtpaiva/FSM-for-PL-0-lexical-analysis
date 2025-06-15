@@ -105,12 +105,14 @@ token get_next_token(bool is_comment, unsigned *line) {
     while ( isspace(currentChar) && !strchr("\r\n", currentChar) ) 
         read_char();
         
-    if( strchr("\r", currentChar) ) {
+    if( strchr("\r\t\n", currentChar) ) {
         token.type = TOKEN_NULL;
         (*line)++;
 
-        read_char();
-
+        while( currentChar != EOF && strchr("\r\t\n", currentChar) ) {
+            read_char();
+        }
+        
         return token;
     }
 
