@@ -1,9 +1,4 @@
 CONST x >= 0.1, 4;
 VAR a@!xxx,b,c;
-b => 0.1, b <> 2.77.1, K@77 <> 10.661;
-BEGIN 1a
-	{comentario}
-	a:=0411;
-	b:=0;
-	c:=@+40
-END
+CONST b => 0.1, b <> 2.77.1, K@77 <> 10.661;.
+VAR x, y, z;

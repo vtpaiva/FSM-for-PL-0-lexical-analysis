@@ -92,12 +92,12 @@ graph *get_CONST_graph() {
 
 graph *get_VAR_graph() {
     state *state1 = create_state("esperado token do tipo 'ident'", 1, "ident");
-    state *state2 = create_state("esperado token do tipo 'virgula'", 1, "virgula");
+    state *state2 = create_state("esperado token do tipo 'virgula'", 1, "simbolo_virgula");
 
     state1->next_state = state2;
     state2->next_state = state1;
 
-    return create_graph(CONST, state1, "simbolo_ponto_virgula", 1, state2);
+    return create_graph(VAR, state1, "simbolo_ponto_virgula", 1, state2);
 }
 
 int get_scope(char *lexic_input) {
@@ -132,7 +132,7 @@ bool is_correct_token(state *current_state, char *lexic_input) {
 void sintatic(FILE *lexic_file, FILE *output_file) {
     graph *GRAPHS[] = {get_NEW_graph(), get_CONST_graph(), get_VAR_graph()};
 
-    unsigned line, current_scope = NEW;
+    unsigned line, previous_line, current_scope = NEW;
     char token[256], definition[256];
     char previous_definition[256];
     struct Graph *current_graph = NULL;
@@ -140,7 +140,7 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
 
     bool panic_mode = false;
 
-    while ( fscanf(lexic_file, "%[^,], %[^,], %u\n", token, definition, &line) == 3 ) {
+    while ( fscanf(lexic_file, "%[^,], %[^,], %u\n", token, definition, &line) == 3 && current_scope != END) {
 
         if( !strcmp(definition, "<ERRO_LEXICO_CHAR>") )
             fprintf(output_file, "Erro léxico na linha %u: caracter inválido (%s)\n", line, token);
@@ -148,43 +148,48 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
             fprintf(output_file, "Erro léxico na linha %u: palavra inválida (%s)\n", line, token);
         else if( !strcmp(definition, "<ERRO_LEXICO_NUMERO>") )
             fprintf(output_file, "Erro léxico na linha %u: número inválido (%s)\n", line, token);
-        else if( !strcmp(definition, "<ERRO_LEXICO_FLOAT>") )
-            fprintf(output_file, "Erro léxico na linha %u: zero à esquerda (%s)\n", line, token);
         else if( !strcmp(definition, "<ERRO_LEXICO_LEFT_ZERO>") )
+            fprintf(output_file, "Erro léxico na linha %u: zero à esquerda (%s)\n", line, token);
+        else if( !strcmp(definition, "<ERRO_LEXICO_FLOAT>") )
             fprintf(output_file, "Erro léxico na linha %u: número flutuante (%s)\n", line, token);
         
         if( panic_mode ) {
             if( !strcmp(current_graph -> end_lexic, definition) ) {
                 panic_mode = false;
                 current_scope = NEW;
-            } else if(get_scope(definition) != NEW) {
+            } else if( get_scope(definition) != NEW ) {
                 panic_mode = false;
                 current_scope = get_scope(definition);
 
-                if( current_scope != END && strcmp(current_graph -> end_lexic, "@") )
-                    fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", line, current_graph -> end_lexic);
-                
-                current_graph = GRAPHS[current_scope];
-                current_state = current_graph -> start_state;
+                if( current_scope != END ) {
+                    current_graph = GRAPHS[current_scope];
+                    current_state = current_graph -> start_state;
+
+                    if( strcmp(current_graph -> end_lexic, "@") ) {
+                        fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", line, current_graph -> end_lexic);
+                    }
+                }
             }
 
+            previous_line = line;
             strcpy(previous_definition, definition);
 
             continue;
         }
 
         if( current_scope == NEW ) {
-            current_scope = get_scope(definition);
 
+            current_scope = get_scope(definition);
             if( current_scope != END ) {
                 current_graph = GRAPHS[current_scope];
                 current_state = current_graph -> start_state;
 
+                previous_line = line;
                 strcpy(previous_definition, definition);
             }   
 
             if( current_scope == NEW ) {
-                fprintf(output_file, "Erro sintático na linha %u: %s\n", line, current_state -> error_message);
+                fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
 
                 panic_mode = true;
             }
@@ -195,10 +200,11 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
         
         if( !strcmp(current_graph -> end_lexic, definition) ) {
             if( !is_end_state(current_graph, current_state) ) {
-                fprintf(output_file, "Erro sintático na linha %u: %s\n", line, current_state -> error_message);
+                fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
             }
 
             current_scope = NEW;
+            previous_line = line;
             strcpy(previous_definition, definition);
 
             continue;
@@ -209,14 +215,15 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
 
             if( current_scope != END ) {
                 if( !is_end_state(current_graph, current_state) ) {
-                    fprintf(output_file, "Erro sintático na linha %u: %s\n", line, current_state -> error_message);
+                    fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
                 }
 
-                fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", line, current_graph -> end_lexic);
+                fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", previous_line, current_graph -> end_lexic);
 
                 current_graph = GRAPHS[current_scope];
                 current_state = current_graph -> start_state;
 
+                previous_line = line;
                 strcpy(previous_definition, definition);
             }
 
@@ -224,8 +231,7 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
         }
 
         if( !is_correct_token(current_state, definition) ) {
-            printf("%d %s %u", current_scope, token, current_graph -> scope);
-            fprintf(output_file, "Erro sintático na linha %u: %s\n", line, current_state -> error_message);
+            fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
 
             panic_mode = true;
 
@@ -235,17 +241,22 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
         }
 
         current_state = current_state -> next_state;
+        previous_line = line;
         strcpy(previous_definition, definition);
     }
 
-    if( !is_end_state(current_graph, current_state) )
-        fprintf(output_file, "Erro sintático na linha %u: %s\n", line, current_state -> error_message);
+    if( !feof(lexic_file) )
+        fprintf(output_file, "Erro sintático na linha %u: há código após o término do bloco principal\n", line);
+    else {
+        if( !is_end_state(current_graph, current_state) )
+            fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
 
-    if( strcmp(current_graph -> end_lexic, previous_definition) && strcmp(current_graph -> end_lexic, "@"))
-        fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", line, current_graph -> end_lexic);
+        if( strcmp(current_graph -> end_lexic, previous_definition) && strcmp(current_graph -> end_lexic, "@"))
+            fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", line, current_graph -> end_lexic);
 
-    if( strcmp("simbolo_ponto", definition) ) 
-        fprintf(output_file, "Erro sintático na linha %u: símbolo '.' faltando\n", line);
+        if( strcmp("simbolo_ponto", definition) ) 
+            fprintf(output_file, "Erro sintático na linha %u: símbolo '.' faltando\n", line);
+    }
 
     if( ftell(output_file) == 0 )
         fprintf(output_file, "Sucesso! A compilação não apresentou erros.");

@@ -105,7 +105,7 @@ token get_next_token(bool is_comment, unsigned *line) {
     while ( isspace(currentChar) && !strchr("\r\n", currentChar) ) 
         read_char();
         
-    if( strchr("\r\n", currentChar) ) {
+    if( strchr("\r", currentChar) ) {
         token.type = TOKEN_NULL;
         (*line)++;
 
@@ -230,7 +230,7 @@ token get_next_token(bool is_comment, unsigned *line) {
         return token;
     }
 
-    if( strchr("{}", currentChar) ) {
+    if( strchr("{}\n", currentChar) ) {
         token.lexeme[0] = currentChar;
         token.lexeme[1] = '\0'; 
 
