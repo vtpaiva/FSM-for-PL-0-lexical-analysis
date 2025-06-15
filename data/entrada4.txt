@@ -1,4 +1,4 @@
-VAR numero, metade, produto, resto;
+CONST numero = 1, metade = 2, produto = 3, resto = 4;
 VAR saida;
 {saida: 1 = impar, 0 = par}
 BEGIN

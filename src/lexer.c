@@ -102,10 +102,25 @@ int is_keyword_or_error(char* str) {
 token get_next_token(bool is_comment, unsigned *line) {
     token token = {.lexeme[0] = currentChar, .type = TOKEN_ERROR_INVALID_CHAR, .line = *line};
 
-    if( currentChar == '\r' ) {
+    while ( isspace(currentChar) && !strchr("\r\n", currentChar) ) 
+        read_char();
+        
+    if( strchr("\r\n", currentChar) ) {
         token.type = TOKEN_NULL;
         (*line)++;
+
         read_char();
+
+        return token;
+    }
+
+    if( currentChar == ',' ) {
+        token.lexeme[0] = '!';
+        token.lexeme[1] = '\0';
+        token.type = TOKEN_SYMBOL;
+        
+        read_char();
+
         return token;
     }
 
@@ -115,9 +130,6 @@ token get_next_token(bool is_comment, unsigned *line) {
 
         return token;
     }
-
-    while ( isspace(currentChar) ) 
-        read_char();
 
     if ( currentChar == EOF ) {
         token.type = TOKEN_EOF;
@@ -218,8 +230,7 @@ token get_next_token(bool is_comment, unsigned *line) {
         return token;
     }
 
-    // Vírgulas não são explícitas na saída.
-    if( strchr(",{}", currentChar) ) {
+    if( strchr("{}", currentChar) ) {
         token.lexeme[0] = currentChar;
         token.lexeme[1] = '\0'; 
 
@@ -270,7 +281,7 @@ char *token_type_to_string(token token) {
         case TOKEN_SYMBOL: {
             if (token.lexeme[0] == ';')
                 return "simbolo_ponto_virgula";
-            else if (token.lexeme[0] == ',')
+            else if (token.lexeme[0] == '!')
                 return "simbolo_virgula";
             else if (token.lexeme[0] == '.')
                 return "simbolo_ponto";
