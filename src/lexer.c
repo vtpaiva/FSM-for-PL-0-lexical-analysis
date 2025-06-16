@@ -232,7 +232,7 @@ token get_next_token(bool is_comment, unsigned *line) {
         return token;
     }
 
-    if( strchr("{}\n", currentChar) ) {
+    if( strchr("{}", currentChar) ) {
         token.lexeme[0] = currentChar;
         token.lexeme[1] = '\0'; 
 

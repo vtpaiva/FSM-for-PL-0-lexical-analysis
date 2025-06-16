@@ -1,4 +1,4 @@
-CONST x >= 0.1, 4;
-VAR a@!xxx,b,c;
-CONST b => 0.1, b <> 2.77.1, K@77 <> 10.661;.
-VAR x, y, z;
+VAR a,b,c;
+BEGIN
+    a := 2;
+END.
