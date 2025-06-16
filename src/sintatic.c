@@ -465,9 +465,6 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
         strcpy(previous_definition, definition);
     }
 
-    if( strcmp(definition, "simbolo_ponto") && current_scope == END )
-        fprintf(output_file, "Erro sintático na linha %u: há código após o término do bloco principal\n", line);
-
     if( !is_end_state(current_graph, current_state) && strcmp(current_graph -> end_lexic, previous_definition) && strcmp("END", previous_definition) )
         fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
 
@@ -476,6 +473,9 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
 
     if( strcmp("simbolo_ponto", definition) && current_scope != END ) 
         fprintf(output_file, "Erro sintático na linha %u: símbolo '.' faltando\n", line);
+
+    if( strcmp(definition, "simbolo_ponto") && current_scope == END )
+        fprintf(output_file, "Erro sintático na linha %u: há código após o término do bloco principal\n", line);
 
     if( ftell(output_file) == 0 )
         fprintf(output_file, "Sucesso! A compilação não apresentou erros.");
