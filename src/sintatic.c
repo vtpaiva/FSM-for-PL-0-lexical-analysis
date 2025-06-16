@@ -185,7 +185,7 @@ graph *get_IF_graph() {
     state *state2 = create_state("esperado um operador relacional");
     state *state3 = create_state("esperado 'ident' ou 'numero' para finalizar a condição");
     state *state4 = create_state("esperado a palavra-chave 'THEN'");
-    state *state5 = create_state("@"); // Estado final que dispara a análise do próximo comando
+    state *state5 = create_state("@");
 
     transition *t1 = create_transition(state2, 2, "ident", "numero");
     transition *t2 = create_transition(state3, 6, "simbolo_igual", "simbolo_diferente", "simbolo_menor", "simbolo_menor_igual", "simbolo_maior", "simbolo_maior_igual");
@@ -197,8 +197,6 @@ graph *get_IF_graph() {
     add_transitions_from(state3, 1, t3);
     add_transitions_from(state4, 1, t4);
 
-    // O lexema final é '@', um marcador para indicar que o grafo termina sem um token delimitador.
-    // O loop `sintatic` irá remover este grafo da pilha e analisar o próximo comando.
     return create_graph(IF_T, state1, "@", 1, state5);
 }
 
@@ -239,7 +237,7 @@ graph *get_BEGIN_graph() {
     add_transitions_from(state3, 1, transition5);
     add_transitions_from(state4, 2, transition3, transition4);
 
-    return create_graph(BEGIN, state1, "END", 1, state1);
+    return create_graph(BEGIN, state1, "@", 2, state1, state4);
 }
 
 graph *get_PROCEDURE_graph() {
@@ -282,7 +280,6 @@ bool is_end_state(graph *graph, state *current_state) {
 bool is_correct_token(state *current_state, char *lexic_input) {
     for( int i = 0; i < current_state -> transition_count; i++) {
         for( int j = 0; j < current_state -> transitions[i] ->symbols_size; j++ ) {
-            printf("%s %s\n", current_state -> transitions[i] -> symbols[j], lexic_input);
             if( !strcmp(current_state -> transitions[i] -> symbols[j], lexic_input) )
                 return true;
         }
@@ -300,6 +297,19 @@ state *get_next_state(state *current_state, char *lexic_input) {
     }
 
     return NULL;
+}
+
+state* copy_state(state* original_state) {
+    if (original_state == NULL) {
+        return NULL;
+    }
+    state* new_state = (state*)malloc(sizeof(state));
+    if (new_state == NULL) {
+        perror("Erro ao alocar memória para new_state");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(new_state, original_state, sizeof(state)); // Copia os membros de state
+    return new_state;
 }
 
 graph_stack *init_stack() {
@@ -336,9 +346,9 @@ void print_stack(graph_stack *stack) {
 
 void sintatic(FILE *lexic_file, FILE *output_file) {
     graph *GRAPHS[] = {get_NEW_graph(), get_CONST_graph(), get_VAR_graph(), 
-                       get_PROCEDURE_graph(), get_CALL_graph(), get_BEGIN_graph(), get_ODD_graph(), get_IF_graph(), get_WHILE_graph()};
+                       get_PROCEDURE_graph(), get_CALL_graph(), get_BEGIN_graph(), 
+                       get_ODD_graph(), get_IF_graph(), get_WHILE_graph()};
 
-    graph_stack *stack = init_stack();
 
     unsigned line, previous_line = 0, current_scope = NEW;
     char token[256], definition[256];
@@ -374,7 +384,6 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
                 if( current_scope != END ) {
                     current_graph = GRAPHS[current_scope];
                     current_state = current_graph -> start_state;
-                    push_stack(stack, GRAPHS[current_scope]);
 
                     if( strcmp(current_graph -> end_lexic, "@") ) {
                         fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", previous_line, current_graph -> end_lexic);
@@ -392,9 +401,9 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
             current_scope = get_scope(definition);
 
             if( current_scope != END ) {
+
                 current_graph = GRAPHS[current_scope];
                 current_state = current_graph -> start_state;
-                push_stack(stack, GRAPHS[current_scope]);
 
                 previous_line = line;
                 strcpy(previous_definition, definition);
@@ -412,25 +421,22 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
             previous_line = line;
             strcpy(previous_definition, definition);
 
-            if(stack -> size > 0 ) {
-                pop_stack(stack);
-            }
-
             continue;
         }
 
         if( get_scope(definition) != NEW ) {
             current_scope = get_scope(definition);
 
+
             if( current_scope != END ) {
                 if( !is_end_state(current_graph, current_state) ) {
                     fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
                 }
 
-                if( strcmp(current_graph -> end_lexic, "@") )
+                if( strcmp(current_graph -> end_lexic, "@") && strcmp(current_graph -> end_lexic, "END") )
                     fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", previous_line, current_graph -> end_lexic);
 
-                push_stack(stack, GRAPHS[current_scope]);
+                
                 current_graph = GRAPHS[current_scope];
                 current_state = current_graph -> start_state;
 
@@ -442,7 +448,8 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
         }
 
         if( !is_correct_token(current_state, definition) ) {
-            fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
+            if( get_scope(definition) == NEW )
+                fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
 
             panic_mode = true;
 
@@ -458,16 +465,16 @@ void sintatic(FILE *lexic_file, FILE *output_file) {
         strcpy(previous_definition, definition);
     }
 
-    if( !feof(lexic_file) )
+    if( strcmp(definition, "simbolo_ponto") && current_scope == END )
         fprintf(output_file, "Erro sintático na linha %u: há código após o término do bloco principal\n", line);
 
-    if( !is_end_state(current_graph, current_state) && strcmp(current_graph -> end_lexic, previous_definition) )
+    if( !is_end_state(current_graph, current_state) && strcmp(current_graph -> end_lexic, previous_definition) && strcmp("END", previous_definition) )
         fprintf(output_file, "Erro sintático na linha %u: %s, recebido '%s' (%s)\n", previous_line, current_state -> error_message, token, definition);
 
-    if( strcmp(current_graph -> end_lexic, previous_definition) && strcmp(current_graph -> end_lexic, "@") && current_state -> transition_count > 0)
+    if( strcmp(current_graph -> end_lexic, previous_definition) && strcmp(current_graph -> end_lexic, "@") & strcmp("END", previous_definition) && current_state -> transition_count > 0)
         fprintf(output_file, "Erro sintático na linha %u: símbolo '%s' faltando\n", previous_line, current_graph -> end_lexic);
 
-    if( strcmp("simbolo_ponto", definition) ) 
+    if( strcmp("simbolo_ponto", definition) && current_scope != END ) 
         fprintf(output_file, "Erro sintático na linha %u: símbolo '.' faltando\n", line);
 
     if( ftell(output_file) == 0 )

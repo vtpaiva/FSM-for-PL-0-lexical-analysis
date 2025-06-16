@@ -33,7 +33,7 @@ typedef struct State {
 
 typedef struct Graph {
     int scope, end_count;
-    state *start_state, **end_states;
+    state *start_state, *current_state, **end_states;
     char *end_lexic;
     struct Graph *under;
 } graph;

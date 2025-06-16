@@ -9,3 +9,4 @@ BEGIN
 	resto := numero - produto;
 	IF resto = 0 THEN saida := 0;
 END.
+VAR

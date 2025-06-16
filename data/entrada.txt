@@ -1,4 +1,10 @@
-VAR a,b,c;
+VAR a,b,c
+IF x + 2 THEN x:=4;
 BEGIN
     a := 2;
+    IF a > 2
+        b:=3;
+    c:=@+b;
 END.
+
+ewgfiuweghfiw
