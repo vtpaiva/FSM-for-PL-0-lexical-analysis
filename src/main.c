@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
 
 FILE *call_sintatic(char * input_filename) {
     FILE *lexic_file = call_lexic(input_filename), *output_file = fopen(OUTPUT_FILE, "w");
-    // remove(MID_FILE);
+    remove(MID_FILE);
 
     sintatic(lexic_file, output_file);
 
